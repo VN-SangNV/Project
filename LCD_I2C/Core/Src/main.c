@@ -22,7 +22,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <stdio.h>
-#include "lcd_16x2.h"
+#include <CLCD_I2C.h>
 #include <stdlib.h>
 /* USER CODE END Includes */
 
@@ -34,6 +34,7 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 uint32_t result;
+int change;
 float volt;
 char convert[5];
 /* USER CODE END PD */
@@ -49,6 +50,7 @@ ADC_HandleTypeDef hadc1;
 I2C_HandleTypeDef hi2c1;
 
 /* USER CODE BEGIN PV */
+CLCD_I2C_Name LCD1;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -82,8 +84,7 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
-	Lcd_Init();
-
+	
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -99,11 +100,12 @@ int main(void)
   MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
 
-		Lcd_gotoxy(0,0);
-		Lcd_write_string("Volt: ");
-		Lcd_gotoxy(0,1);
-		Lcd_write_string("ADC:");
-	HAL_ADC_Start_IT(&hadc1);
+	
+	CLCD_I2C_Init(&LCD1,&hi2c1,0x4e,16,2);
+	CLCD_I2C_SetCursor(&LCD1,0,0);
+	CLCD_I2C_WriteString(&LCD1,"Volt: ");
+	CLCD_I2C_SetCursor(&LCD1,0,1);
+	CLCD_I2C_WriteString(&LCD1,"ADC: ");
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -113,10 +115,22 @@ int main(void)
     /* USER CODE END WHILE */
 		
     /* USER CODE BEGIN 3 */
-		Lcd_gotoxy(6,0);
-		Lcd_write_int(result);
-		Lcd_gotoxy(5,1);
-		Lcd_write_string(convert);
+		HAL_ADC_Start(&hadc1);
+		result = HAL_ADC_GetValue(&hadc1);
+		volt = (result*3.3)/3450;
+		
+		sprintf(convert, "%.2f", volt);
+		CLCD_I2C_SetCursor(&LCD1,6,0);
+		CLCD_I2C_WriteString(&LCD1,convert);
+		
+		sprintf(convert, "%d", result);
+		CLCD_I2C_SetCursor(&LCD1,5,1);
+		CLCD_I2C_WriteString(&LCD1,convert);
+		HAL_ADC_Stop(&hadc1);
+		HAL_Delay(250);
+		
+
+	
   }
   /* USER CODE END 3 */
 }
@@ -265,12 +279,10 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc){
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
+{
 	if(hadc ->Instance == hadc1.Instance){
 		result = HAL_ADC_GetValue(&hadc1);
-		volt = (result*3.3)/3450;
-	//	sprintf(convert, "%.2f", volt);
-		
 	}
 }
 /* USER CODE END 4 */
